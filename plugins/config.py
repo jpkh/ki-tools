@@ -21,11 +21,10 @@ plugin_date = '2026-08-25'
 # Defaults for every tool. The dialog restores these on first run and
 # saves the last used values back to the settings file.
 DEFAULT_OPTIONS = {
-    # Font fixer: fixfonts(x, y, z)
-    #   x = font size, y = line thickness, z = visible (0/1)
-    'fixfonts': {
-        'font_size': 1.0,        # mm, text height
-        'line_thickness': 0.15,  # mm, text stroke width
+    # Text Size Fixer (ported from fixcompnamesize.py)
+    'textsizer': {
+        'text_size': 0.8,        # mm, footprint reference/value text height
+        'thickness': 0.1,        # mm, text stroke width
         'visible': True,         # False = hide the text items
         'layers': {              # layer name -> enabled
             'F.SilkS': True,
@@ -33,5 +32,12 @@ DEFAULT_OPTIONS = {
             'F.Fab': False,
             'B.Fab': False,
         },
+    },
+    # Fix Vias (ported from fixvia.py)
+    'fixvia': {
+        'old_diameter': 0.6,     # mm
+        'new_diameter': 0.45,    # mm
+        'old_drill': 0.3,        # mm
+        'new_drill': 0.3,        # mm
     },
 }

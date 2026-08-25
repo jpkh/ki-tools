@@ -6,21 +6,29 @@ between sessions.
 
 ## Tools
 
-### Font Fixer
+### Text Size Fixer
 
-Sets every text item on the selected layers to the same values in one go
-(`fixfonts(x, y, z)`):
+Sets footprint reference and value texts on the selected layers to the same
+size, thickness and visibility in one go:
 
-- **Font size** — text height in mm (`x`)
-- **Line thickness** — text stroke width in mm (`y`)
-- **Visible** — show or hide the text items (`z`, 0/1)
-- **Layers** — top/bottom silkscreen and top/bottom fabrication
+- **Text size** — text height in mm
+- **Thickness** — text stroke width in mm
+- **Visible** — show or hide the text items
+- **Layers** — top/bottom silkscreen (`F.SilkS`, `B.SilkS`) and top/bottom
+  fabrication (`F.Fab`, `B.Fab`)
+
+Texts on fiducial / mounting-hole / tooling footprints, references like
+`G201` or `FIDORIG1` and values like `LOGO` are hidden automatically.
+
+### Fix Vias
+
+Resizes every via matching a given old diameter and drill to a new diameter
+and drill.
 
 ### Planned
 
 - **Edge Line Equalizer** — make board edge line widths uniform
 - **Fiducial Grid Placer** — place fiducials on a grid
-- **Fix Vias** — via cleanup
 
 ## Installation
 

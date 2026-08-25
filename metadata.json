@@ -2,7 +2,7 @@
     "$schema": "https://go.kicad.org/pcm/schemas/v1",
     "name": "KI-Tools",
     "description": "PCB cleanup utilities for the PCB editor",
-    "description_full": "A collection of small PCB editing utilities with a simple button UI: set every silkscreen and fabrication text to the same font size and line thickness, equalize edge line widths, place fiducials on a grid, and more. All tool values are remembered between sessions.",
+    "description_full": "A collection of small PCB editing utilities with a simple button UI: set footprint reference and value texts to the same size, thickness and visibility on silkscreen and fabrication layers, resize vias in bulk, and more. All tool values are remembered between sessions.",
     "identifier": "com.github.jpkh.ki-tools",
     "type": "plugin",
     "author": {
