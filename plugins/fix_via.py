@@ -17,6 +17,24 @@
 import pcbnew
 
 
+def _via_drill(via):
+    """Drill size in nm, compatible with KiCad 7-10 SWIG bindings."""
+    for name in ('GetDrillValue', 'GetDrill'):
+        fn = getattr(via, name, None)
+        if fn is not None:
+            return fn()
+    raise AttributeError("no drill getter on via object")
+
+
+def _set_via_drill(via, value_nm):
+    for name in ('SetDrillValue', 'SetDrill'):
+        fn = getattr(via, name, None)
+        if fn is not None:
+            fn(value_nm)
+            return
+    raise AttributeError("no drill setter on via object")
+
+
 def count_vias(board, old_diameter, old_drill):
     """Count vias matching the exact old diameter and drill. mm values."""
     old_d_nm = int(round(old_diameter * 1e6))
@@ -24,7 +42,7 @@ def count_vias(board, old_diameter, old_drill):
 
     count = 0
     for via in board.GetVias():
-        if via.GetWidth() == old_d_nm and via.GetDrill() == old_drill_nm:
+        if via.GetWidth() == old_d_nm and _via_drill(via) == old_drill_nm:
             count += 1
     return count
 
@@ -41,9 +59,9 @@ def fix_vias(board, old_diameter, new_diameter, old_drill, new_drill):
 
     count = 0
     for via in board.GetVias():
-        if via.GetWidth() == old_d_nm and via.GetDrill() == old_drill_nm:
+        if via.GetWidth() == old_d_nm and _via_drill(via) == old_drill_nm:
             via.SetWidth(new_d_nm)
-            via.SetDrill(new_drill_nm)
+            _set_via_drill(via, new_drill_nm)
             count += 1
 
     board.Refresh()

@@ -15,7 +15,10 @@
 import pcbnew
 
 def log_message(message, log_type="INFO"):
-    """Logs a message in the KiCad scripting console."""
+    """Logs a message in the KiCad scripting console. Never raises."""
     full_message = f"[KI-Tools] [{log_type}] {message}"
     print(full_message)  # Prints to KiCad's scripting console
-    pcbnew.GetKernel().GetLogManager().Log(full_message)  # Logs to KiCad messages panel
+    try:
+        pcbnew.GetKernel().GetLogManager().Log(full_message)
+    except Exception:
+        pass  # Logging must never break a tool

@@ -126,6 +126,7 @@ class KiToolsDialog(wx.Dialog):
         self.text_size_spin.SetDigits(2)
         row.Add(self.text_size_spin,
                 flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, border=15)
+        row.AddStretchSpacer(1)
         row.Add(wx.StaticText(panel, label="Thickness (mm): "),
                 flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, border=5)
         self.text_thickness_spin = wx.SpinCtrlDouble(
@@ -154,7 +155,8 @@ class KiToolsDialog(wx.Dialog):
             "Set footprint reference and value texts to the same size,\n"
             "thickness and visibility on the selected layers.")
         layer_row.Add(self.fix_text_btn, flag=wx.ALIGN_CENTER_VERTICAL)
-        sizer.Add(layer_row, flag=wx.LEFT | wx.RIGHT | wx.BOTTOM, border=10)
+        sizer.Add(layer_row,
+                  flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, border=10)
         return sizer
 
     def _build_via_section(self, panel):
@@ -298,11 +300,15 @@ class KiToolsDialog(wx.Dialog):
             )
             self.via_count_label.SetLabel(f"vias: {remaining}")
         except Exception as e:
-            log_message(f"Fix vias failed: {e}", log_type="ERROR")
+            self.via_count_label.SetLabel("vias: ?")
             self.status_label.SetLabel("Fix vias failed: {}".format(e))
+            log_message(f"Fix vias failed: {e}", log_type="ERROR")
 
     def on_count_vias(self, event):
-        self._save()
+        try:
+            self._save()
+        except Exception as e:
+            log_message(f"Save settings failed: {e}", log_type="ERROR")
         board = pcbnew.GetBoard()
         if board is None:
             self.status_label.SetLabel("No board open.")
@@ -316,8 +322,9 @@ class KiToolsDialog(wx.Dialog):
             self.via_count_label.SetLabel(f"vias: {count}")
             self.status_label.SetLabel(f"Found {count} matching vias.")
         except Exception as e:
-            log_message(f"Count vias failed: {e}", log_type="ERROR")
+            self.via_count_label.SetLabel("vias: ?")
             self.status_label.SetLabel("Count vias failed: {}".format(e))
+            log_message(f"Count vias failed: {e}", log_type="ERROR")
 
     def on_close(self, event):
         self._save()
