@@ -17,6 +17,22 @@
 import pcbnew
 
 
+def _board_vias(board):
+    """Yield the board's vias, KiCad 7-10 compatible.
+
+    Older bindings expose BOARD.GetVias(); newer ones only return vias
+    through BOARD.GetTracks().
+    """
+    get_vias = getattr(board, 'GetVias', None)
+    if get_vias is not None:
+        for via in get_vias():
+            yield via
+        return
+    for track in board.GetTracks():
+        if hasattr(track, 'GetDrillValue') or hasattr(track, 'GetDrill'):
+            yield track
+
+
 def _via_drill(via):
     """Drill size in nm, compatible with KiCad 7-10 SWIG bindings."""
     for name in ('GetDrillValue', 'GetDrill'):
@@ -41,7 +57,7 @@ def count_vias(board, old_diameter, old_drill):
     old_drill_nm = int(round(old_drill * 1e6))
 
     count = 0
-    for via in board.GetVias():
+    for via in _board_vias(board):
         if via.GetWidth() == old_d_nm and _via_drill(via) == old_drill_nm:
             count += 1
     return count
@@ -58,7 +74,7 @@ def fix_vias(board, old_diameter, new_diameter, old_drill, new_drill):
     new_drill_nm = int(round(new_drill * 1e6))
 
     count = 0
-    for via in board.GetVias():
+    for via in _board_vias(board):
         if via.GetWidth() == old_d_nm and _via_drill(via) == old_drill_nm:
             via.SetWidth(new_d_nm)
             _set_via_drill(via, new_drill_nm)

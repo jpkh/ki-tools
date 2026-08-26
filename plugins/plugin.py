@@ -50,6 +50,12 @@ def save_options(options):
         log_message(f"Error saving settings: {e}", log_type="ERROR")
 
 
+def _short_error(msg, limit=60):
+    """Keep the status line short so it never overlaps the footer."""
+    msg = str(msg)
+    return msg if len(msg) <= limit else msg[:limit - 3] + "..."
+
+
 class KiToolsPlugin(pcbnew.ActionPlugin):
     def __init__(self):
         super().__init__()
@@ -273,8 +279,9 @@ class KiToolsDialog(wx.Dialog):
             log_message(f"Fixed text sizes: {count} text items")
             self.status_label.SetLabel(f"Updated {count} text items.")
         except Exception as e:
+            self.status_label.SetLabel(_short_error(
+                "Fix text sizes failed: {}".format(e)))
             log_message(f"Fix text sizes failed: {e}", log_type="ERROR")
-            self.status_label.SetLabel("Fix text sizes failed: {}".format(e))
 
     def on_fix_via(self, event):
         self._save()
@@ -301,7 +308,8 @@ class KiToolsDialog(wx.Dialog):
             self.via_count_label.SetLabel(f"vias: {remaining}")
         except Exception as e:
             self.via_count_label.SetLabel("vias: ?")
-            self.status_label.SetLabel("Fix vias failed: {}".format(e))
+            self.status_label.SetLabel(_short_error(
+                "Fix vias failed: {}".format(e)))
             log_message(f"Fix vias failed: {e}", log_type="ERROR")
 
     def on_count_vias(self, event):
@@ -323,7 +331,8 @@ class KiToolsDialog(wx.Dialog):
             self.status_label.SetLabel(f"Found {count} matching vias.")
         except Exception as e:
             self.via_count_label.SetLabel("vias: ?")
-            self.status_label.SetLabel("Count vias failed: {}".format(e))
+            self.status_label.SetLabel(_short_error(
+                "Count vias failed: {}".format(e)))
             log_message(f"Count vias failed: {e}", log_type="ERROR")
 
     def on_close(self, event):
