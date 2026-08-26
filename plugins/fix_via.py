@@ -17,6 +17,18 @@
 import pcbnew
 
 
+def count_vias(board, old_diameter, old_drill):
+    """Count vias matching the exact old diameter and drill. mm values."""
+    old_d_nm = int(round(old_diameter * 1e6))
+    old_drill_nm = int(round(old_drill * 1e6))
+
+    count = 0
+    for via in board.GetVias():
+        if via.GetWidth() == old_d_nm and via.GetDrill() == old_drill_nm:
+            count += 1
+    return count
+
+
 def fix_vias(board, old_diameter, new_diameter, old_drill, new_drill):
     """Resize vias matching the old diameter and drill.
 

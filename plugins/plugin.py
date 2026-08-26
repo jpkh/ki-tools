@@ -76,7 +76,7 @@ class KiToolsDialog(wx.Dialog):
 
     def __init__(self, parent):
         title = "KI-Tools V{}".format(plugin_version)
-        super().__init__(parent, title=title, size=(470, 600))
+        super().__init__(parent, title=title, size=(470, 560))
         self.options = load_options()
 
         panel = wx.Panel(self)
@@ -106,6 +106,7 @@ class KiToolsDialog(wx.Dialog):
 
         self.fix_text_btn.Bind(wx.EVT_BUTTON, self.on_fix_text)
         self.fix_via_btn.Bind(wx.EVT_BUTTON, self.on_fix_via)
+        self.count_via_btn.Bind(wx.EVT_BUTTON, self.on_count_vias)
         self.Bind(wx.EVT_CLOSE, self.on_close)
 
         self._restore_controls()
@@ -148,14 +149,12 @@ class KiToolsDialog(wx.Dialog):
         layer_row.Add(wx.StaticText(panel, label="Layers:"),
                       flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, border=5)
         layer_row.Add(grid, proportion=1, flag=wx.EXPAND)
-        sizer.Add(layer_row, flag=wx.LEFT | wx.RIGHT, border=10)
-
         self.fix_text_btn = wx.Button(panel, label="Fix Text Sizes")
         self.fix_text_btn.SetToolTip(
             "Set footprint reference and value texts to the same size,\n"
             "thickness and visibility on the selected layers.")
-        sizer.Add(self.fix_text_btn,
-                  flag=wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, border=10)
+        layer_row.Add(self.fix_text_btn, flag=wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(layer_row, flag=wx.LEFT | wx.RIGHT | wx.BOTTOM, border=10)
         return sizer
 
     def _build_via_section(self, panel):
@@ -163,7 +162,7 @@ class KiToolsDialog(wx.Dialog):
         sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
         self.via_spins = {}
-        grid = wx.GridSizer(2, 4, 5, 5)
+        grid = wx.GridSizer(2, 2, 5, 5)
         for key, label, initial in (
             ('old_diameter', 'Old diameter', 0.6),
             ('new_diameter', 'New diameter', 0.45),
@@ -181,11 +180,32 @@ class KiToolsDialog(wx.Dialog):
             grid.Add(cell, flag=wx.EXPAND)
         sizer.Add(grid, flag=wx.EXPAND | wx.ALL, border=10)
 
+        help_label = wx.StaticText(
+            panel,
+            label="Only vias matching both the old diameter and the old drill "
+                  "are counted and changed.")
+        help_font = help_label.GetFont()
+        help_font.SetPointSize(max(6, help_font.GetPointSize() - 1))
+        help_label.SetFont(help_font)
+        help_label.SetForegroundColour(
+            wx.SystemSettings.GetColour(wx.SYS_COLOUR_GRAYTEXT))
+        sizer.Add(help_label, flag=wx.LEFT | wx.RIGHT, border=10)
+
+        btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.count_via_btn = wx.Button(panel, label="Count Vias")
+        self.count_via_btn.SetToolTip(
+            "Count vias matching the old diameter and drill.")
+        self.via_count_label = wx.StaticText(panel, label="vias: -")
+        btn_row.Add(self.count_via_btn,
+                    flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, border=8)
+        btn_row.Add(self.via_count_label, flag=wx.ALIGN_CENTER_VERTICAL)
+        btn_row.AddStretchSpacer(1)
         self.fix_via_btn = wx.Button(panel, label="Fix Vias")
         self.fix_via_btn.SetToolTip(
             "Resize every via matching the old diameter and drill.")
-        sizer.Add(self.fix_via_btn,
-                  flag=wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, border=10)
+        btn_row.Add(self.fix_via_btn, flag=wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(btn_row, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+                  border=10)
         return sizer
 
     def _build_planned_section(self, panel):
@@ -270,9 +290,34 @@ class KiToolsDialog(wx.Dialog):
             )
             log_message(f"Fixed vias: {count} updated")
             self.status_label.SetLabel(f"Updated {count} vias.")
+            # Refresh the manual count display (matching vias are gone now)
+            remaining = fix_via.count_vias(
+                board,
+                self.via_spins['old_diameter'].GetValue(),
+                self.via_spins['old_drill'].GetValue(),
+            )
+            self.via_count_label.SetLabel(f"vias: {remaining}")
         except Exception as e:
             log_message(f"Fix vias failed: {e}", log_type="ERROR")
             self.status_label.SetLabel("Fix vias failed: {}".format(e))
+
+    def on_count_vias(self, event):
+        self._save()
+        board = pcbnew.GetBoard()
+        if board is None:
+            self.status_label.SetLabel("No board open.")
+            return
+        try:
+            count = fix_via.count_vias(
+                board,
+                self.via_spins['old_diameter'].GetValue(),
+                self.via_spins['old_drill'].GetValue(),
+            )
+            self.via_count_label.SetLabel(f"vias: {count}")
+            self.status_label.SetLabel(f"Found {count} matching vias.")
+        except Exception as e:
+            log_message(f"Count vias failed: {e}", log_type="ERROR")
+            self.status_label.SetLabel("Count vias failed: {}".format(e))
 
     def on_close(self, event):
         self._save()
