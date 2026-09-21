@@ -42,6 +42,6 @@ DEFAULT_OPTIONS = {
     },
     # Edge Line Equalizer
     'edge_equalizer': {
-        'line_width': 0.1,       # mm, applied to Edge.Cuts line segments
+        'line_width': 0.05,      # mm, applied to Edge.Cuts drawing shapes
     },
 }
