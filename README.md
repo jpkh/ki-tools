@@ -22,12 +22,16 @@ Texts on fiducial / mounting-hole / tooling footprints, references like
 
 ### Fix Vias
 
-Resizes every via matching a given old diameter and drill to a new diameter
-and drill.
+Counts vias matching a given old diameter and drill, and resizes them to a
+new diameter and drill in one go.
+
+### Edge Line Equalizer
+
+Sets the outline width of every drawing shape on the `Edge.Cuts` layer —
+lines, arcs, rectangles, circles and polygons — to one value.
 
 ### Planned
 
-- **Edge Line Equalizer** — make board edge line widths uniform
 - **Fiducial Grid Placer** — place fiducials on a grid
 
 ## Installation
@@ -38,7 +42,7 @@ plugins folder.
 
 ## Development status
 
-Initial scaffold (0.1.0). Tool logic is being ported from existing scripts.
+1.0.1 (testing). Three tools implemented; more planned.
 
 ## License
 
