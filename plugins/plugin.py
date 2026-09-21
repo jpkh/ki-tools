@@ -17,7 +17,7 @@ import os
 import wx
 import pcbnew
 
-from . import fix_text, fix_via
+from . import edge_equalizer, fix_text, fix_via
 from .config import DEFAULT_OPTIONS, settingsFileName, plugin_version
 from .log_util import log_message
 
@@ -76,13 +76,12 @@ class KiToolsDialog(wx.Dialog):
     TEXT_LAYERS = ['F.SilkS', 'B.SilkS', 'F.Fab', 'B.Fab']
 
     PLANNED_TOOLS = [
-        ("Edge Line Equalizer", "Planned: equalize board edge line widths"),
         ("Fiducial Grid Placer", "Planned: place fiducials on a grid"),
     ]
 
     def __init__(self, parent):
         title = "KI-Tools V{}".format(plugin_version)
-        super().__init__(parent, title=title, size=(470, 560))
+        super().__init__(parent, title=title, size=(470, 640))
         self.options = load_options()
 
         panel = wx.Panel(self)
@@ -91,6 +90,8 @@ class KiToolsDialog(wx.Dialog):
         vbox.Add(self._build_text_section(panel),
                  flag=wx.EXPAND | wx.ALL, border=10)
         vbox.Add(self._build_via_section(panel),
+                 flag=wx.EXPAND | wx.ALL, border=10)
+        vbox.Add(self._build_edge_section(panel),
                  flag=wx.EXPAND | wx.ALL, border=10)
         vbox.Add(self._build_planned_section(panel),
                  flag=wx.EXPAND | wx.ALL, border=10)
@@ -110,9 +111,19 @@ class KiToolsDialog(wx.Dialog):
         vbox.Add(hbox_info, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
                  border=10)
 
+        # Close button, bottom right
+        close_row = wx.BoxSizer(wx.HORIZONTAL)
+        close_row.AddStretchSpacer(1)
+        self.close_btn = wx.Button(panel, label="Close")
+        close_row.Add(self.close_btn,
+                     flag=wx.RIGHT | wx.BOTTOM, border=10)
+        vbox.Add(close_row, flag=wx.EXPAND)
+
         self.fix_text_btn.Bind(wx.EVT_BUTTON, self.on_fix_text)
         self.fix_via_btn.Bind(wx.EVT_BUTTON, self.on_fix_via)
         self.count_via_btn.Bind(wx.EVT_BUTTON, self.on_count_vias)
+        self.equalize_btn.Bind(wx.EVT_BUTTON, self.on_equalize_edges)
+        self.close_btn.Bind(wx.EVT_BUTTON, lambda e: self.EndModal(wx.ID_CLOSE))
         self.Bind(wx.EVT_CLOSE, self.on_close)
 
         self._restore_controls()
@@ -216,6 +227,25 @@ class KiToolsDialog(wx.Dialog):
                   border=10)
         return sizer
 
+    def _build_edge_section(self, panel):
+        box = wx.StaticBox(panel, label="Edge Line Equalizer")
+        sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+
+        row = wx.BoxSizer(wx.HORIZONTAL)
+        row.Add(wx.StaticText(panel, label="Line width (mm): "),
+                flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, border=5)
+        self.edge_width_spin = wx.SpinCtrlDouble(
+            panel, min=0.01, max=5.0, initial=0.1, inc=0.01)
+        self.edge_width_spin.SetDigits(2)
+        row.Add(self.edge_width_spin, flag=wx.ALIGN_CENTER_VERTICAL)
+        row.AddStretchSpacer(1)
+        self.equalize_btn = wx.Button(panel, label="Change Line Width")
+        self.equalize_btn.SetToolTip(
+            "Set every line segment on Edge.Cuts to the given width.")
+        row.Add(self.equalize_btn, flag=wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(row, flag=wx.EXPAND | wx.ALL, border=10)
+        return sizer
+
     def _build_planned_section(self, panel):
         box = wx.StaticBox(panel, label="Planned tools")
         sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
@@ -241,6 +271,9 @@ class KiToolsDialog(wx.Dialog):
         for key, spin in self.via_spins.items():
             spin.SetValue(float(via.get(key, spin.GetValue())))
 
+        edge = self.options['edge_equalizer']
+        self.edge_width_spin.SetValue(float(edge.get('line_width', 0.1)))
+
     def _save(self):
         text = self.options['textsizer']
         text['text_size'] = float(self.text_size_spin.GetValue())
@@ -252,6 +285,9 @@ class KiToolsDialog(wx.Dialog):
         via = self.options['fixvia']
         for key, spin in self.via_spins.items():
             via[key] = float(spin.GetValue())
+
+        edge = self.options['edge_equalizer']
+        edge['line_width'] = float(self.edge_width_spin.GetValue())
 
         save_options(self.options)
 
@@ -311,6 +347,22 @@ class KiToolsDialog(wx.Dialog):
             self.status_label.SetLabel(_short_error(
                 "Fix vias failed: {}".format(e)))
             log_message(f"Fix vias failed: {e}", log_type="ERROR")
+
+    def on_equalize_edges(self, event):
+        self._save()
+        board = pcbnew.GetBoard()
+        if board is None:
+            self.status_label.SetLabel("No board open.")
+            return
+        try:
+            count = edge_equalizer.equalize_edges(
+                board, self.edge_width_spin.GetValue())
+            log_message(f"Equalized edges: {count} line(s)")
+            self.status_label.SetLabel(f"Updated {count} edge line(s).")
+        except Exception as e:
+            self.status_label.SetLabel(_short_error(
+                "Edge equalizer failed: {}".format(e)))
+            log_message(f"Edge equalizer failed: {e}", log_type="ERROR")
 
     def on_count_vias(self, event):
         try:

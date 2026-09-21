@@ -15,8 +15,8 @@
 settingsFileName = 'ki-tools-options.json'
 
 # Shown in the dialog title; bump together with metadata.json
-plugin_version = '0.1.0'
-plugin_date = '2026-08-25'
+plugin_version = '1.0.1'
+plugin_date = '2026-09-21'
 
 # Defaults for every tool. The dialog restores these on first run and
 # saves the last used values back to the settings file.
@@ -39,5 +39,9 @@ DEFAULT_OPTIONS = {
         'new_diameter': 0.45,    # mm
         'old_drill': 0.3,        # mm
         'new_drill': 0.3,        # mm
+    },
+    # Edge Line Equalizer
+    'edge_equalizer': {
+        'line_width': 0.1,       # mm, applied to Edge.Cuts line segments
     },
 }
