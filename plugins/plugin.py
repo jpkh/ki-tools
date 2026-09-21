@@ -372,14 +372,17 @@ class KiToolsDialog(wx.Dialog):
             self._set_status("No board open.")
             return
         try:
-            lines, arcs = edge_equalizer.equalize_edges(
+            counts = edge_equalizer.equalize_edges(
                 board, self.edge_width_spin.GetValue())
-            log_message(f"Equalized edges: {lines} line(s), {arcs} arc(s)")
-            self._set_status(
-                f"Updated {lines} line(s) and {arcs} arc(s) on Edge.Cuts.")
+            parts = ["{} {}".format(n, name) for name, n in counts.items() if n]
+            if not parts:
+                self._set_status("No Edge.Cuts shapes found.")
+                return
+            log_message("Equalized edges: {}".format(", ".join(parts)))
+            self._set_status("Updated on Edge.Cuts: {}.".format(", ".join(parts)))
         except Exception as e:
             self._set_status("Edge equalizer failed: {}".format(e))
-            log_message(f"Edge equalizer failed: {e}", log_type="ERROR")
+            log_message("Edge equalizer failed: {}".format(e), log_type="ERROR")
 
     def on_count_vias(self, event):
         try:

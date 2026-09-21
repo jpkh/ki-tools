@@ -33,16 +33,33 @@ def _board_drawings(board):
             yield item
 
 
+# Shape constants handled by the equalizer (PCB_SHAPE shapes)
+_SHAPES = {
+    'lines': 'S_SEGMENT',
+    'arcs': 'S_ARC',
+    'rects': 'S_RECT',
+    'circles': 'S_CIRCLE',
+    'polygons': 'S_POLYGON',
+}
+
+
 def equalize_edges(board, line_width):
-    """Set every line and arc on Edge.Cuts to the given width.
+    """Set the outline width of every drawing shape on Edge.Cuts.
 
-    Other Edge.Cuts items (circles, text) are left alone.
+    Lines, arcs, rectangles, circles and polygons are changed; other
+    Edge.Cuts items (text) are left alone.
 
-    line_width: mm float. Returns (lines_changed, arcs_changed).
+    line_width: mm float. Returns a dict of changed counts per shape type.
     """
     width_nm = int(round(line_width * 1e6))
-    lines = 0
-    arcs = 0
+    counts = {key: 0 for key in _SHAPES}
+
+    shape_consts = {}
+    for key, const_name in _SHAPES.items():
+        const = getattr(pcbnew, const_name, None)
+        if const is not None:
+            shape_consts[const] = key
+
     for item in _board_drawings(board):
         try:
             if item.GetLayer() != pcbnew.Edge_Cuts:
@@ -53,15 +70,13 @@ def equalize_edges(board, line_width):
             shape_fn = getattr(item, 'GetShape', None)
             if shape_fn is None:
                 continue
-            shape = shape_fn()
-            if shape == pcbnew.S_SEGMENT:
-                item.SetWidth(width_nm)
-                lines += 1
-            elif shape == pcbnew.S_ARC:
-                item.SetWidth(width_nm)
-                arcs += 1
+            key = shape_consts.get(shape_fn())
+            if key is None:
+                continue
+            item.SetWidth(width_nm)
+            counts[key] += 1
         except Exception:
             continue
 
     pcbnew.Refresh()
-    return lines, arcs
+    return counts
