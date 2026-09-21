@@ -16,6 +16,23 @@
 import pcbnew
 
 
+def _board_drawings(board):
+    """Yield the board's drawing items, KiCad 7-10 compatible.
+
+    Newer bindings may drop BOARD.GetDrawings(); fall back to iterating
+    all board items via GetItems().
+    """
+    get_drawings = getattr(board, 'GetDrawings', None)
+    if get_drawings is not None:
+        for item in get_drawings():
+            yield item
+        return
+    get_items = getattr(board, 'GetItems', None)
+    if get_items is not None:
+        for item in get_items():
+            yield item
+
+
 def equalize_edges(board, line_width):
     """Set every line segment on Edge.Cuts to the given width.
 
@@ -26,16 +43,18 @@ def equalize_edges(board, line_width):
     """
     width_nm = int(round(line_width * 1e6))
     count = 0
-    for item in board.GetDrawings():
+    for item in _board_drawings(board):
         try:
             if item.GetLayer() != pcbnew.Edge_Cuts:
                 continue
         except Exception:
             continue
         try:
-            if item.GetShape() == pcbnew.S_SEGMENT:
-                item.SetWidth(width_nm)
-                count += 1
+            shape_fn = getattr(item, 'GetShape', None)
+            if shape_fn is None or shape_fn() != pcbnew.S_SEGMENT:
+                continue
+            item.SetWidth(width_nm)
+            count += 1
         except Exception:
             continue
 

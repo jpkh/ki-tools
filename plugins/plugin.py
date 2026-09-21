@@ -50,10 +50,23 @@ def save_options(options):
         log_message(f"Error saving settings: {e}", log_type="ERROR")
 
 
-def _short_error(msg, limit=60):
-    """Keep the status line short so it never overlaps the footer."""
-    msg = str(msg)
-    return msg if len(msg) <= limit else msg[:limit - 3] + "..."
+def _wrap_text(text, width=65):
+    """Wrap text into lines of at most `width` characters."""
+    lines = []
+    for paragraph in str(text).split('\n'):
+        words = paragraph.split(' ')
+        cur = ''
+        for w in words:
+            candidate = (cur + ' ' + w).strip()
+            if len(candidate) <= width:
+                cur = candidate
+            else:
+                if cur:
+                    lines.append(cur)
+                cur = w
+        if cur:
+            lines.append(cur)
+    return '\n'.join(lines)
 
 
 class KiToolsPlugin(pcbnew.ActionPlugin):
@@ -96,10 +109,13 @@ class KiToolsDialog(wx.Dialog):
         vbox.Add(self._build_planned_section(panel),
                  flag=wx.EXPAND | wx.ALL, border=10)
 
-        # Status + version footer
+        # Status area on its own line; wraps, so it cannot overlap the footer
         self.status_label = wx.StaticText(panel, label="Ready.")
+        vbox.Add(self.status_label,
+                 flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, border=10)
+
+        # Version footer
         hbox_info = wx.BoxSizer(wx.HORIZONTAL)
-        hbox_info.Add(self.status_label, flag=wx.ALIGN_CENTER_VERTICAL)
         hbox_info.AddStretchSpacer(1)
         hbox_info.Add(wx.StaticText(panel, label="KI-Tools V{}".format(plugin_version)),
                       flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, border=10)
@@ -293,16 +309,19 @@ class KiToolsDialog(wx.Dialog):
 
     # --- Events ---
 
+    def _set_status(self, text):
+        self.status_label.SetLabel(_wrap_text(text))
+
     def on_fix_text(self, event):
         self._save()
         board = pcbnew.GetBoard()
         if board is None:
-            self.status_label.SetLabel("No board open.")
+            self._set_status("No board open.")
             return
         layers = [name for name, cb in self.text_layer_checks.items()
                   if cb.GetValue()]
         if not layers:
-            self.status_label.SetLabel("No layers selected.")
+            self._set_status("No layers selected.")
             return
         try:
             count = fix_text.fix_text_sizes(
@@ -313,17 +332,16 @@ class KiToolsDialog(wx.Dialog):
                 layers,
             )
             log_message(f"Fixed text sizes: {count} text items")
-            self.status_label.SetLabel(f"Updated {count} text items.")
+            self._set_status(f"Updated {count} text items.")
         except Exception as e:
-            self.status_label.SetLabel(_short_error(
-                "Fix text sizes failed: {}".format(e)))
+            self._set_status("Fix text sizes failed: {}".format(e))
             log_message(f"Fix text sizes failed: {e}", log_type="ERROR")
 
     def on_fix_via(self, event):
         self._save()
         board = pcbnew.GetBoard()
         if board is None:
-            self.status_label.SetLabel("No board open.")
+            self._set_status("No board open.")
             return
         try:
             count = fix_via.fix_vias(
@@ -334,7 +352,7 @@ class KiToolsDialog(wx.Dialog):
                 self.via_spins['new_drill'].GetValue(),
             )
             log_message(f"Fixed vias: {count} updated")
-            self.status_label.SetLabel(f"Updated {count} vias.")
+            self._set_status(f"Updated {count} vias.")
             # Refresh the manual count display (matching vias are gone now)
             remaining = fix_via.count_vias(
                 board,
@@ -344,24 +362,22 @@ class KiToolsDialog(wx.Dialog):
             self.via_count_label.SetLabel(f"vias: {remaining}")
         except Exception as e:
             self.via_count_label.SetLabel("vias: ?")
-            self.status_label.SetLabel(_short_error(
-                "Fix vias failed: {}".format(e)))
+            self._set_status("Fix vias failed: {}".format(e))
             log_message(f"Fix vias failed: {e}", log_type="ERROR")
 
     def on_equalize_edges(self, event):
         self._save()
         board = pcbnew.GetBoard()
         if board is None:
-            self.status_label.SetLabel("No board open.")
+            self._set_status("No board open.")
             return
         try:
             count = edge_equalizer.equalize_edges(
                 board, self.edge_width_spin.GetValue())
             log_message(f"Equalized edges: {count} line(s)")
-            self.status_label.SetLabel(f"Updated {count} edge line(s).")
+            self._set_status(f"Updated {count} edge line(s).")
         except Exception as e:
-            self.status_label.SetLabel(_short_error(
-                "Edge equalizer failed: {}".format(e)))
+            self._set_status("Edge equalizer failed: {}".format(e))
             log_message(f"Edge equalizer failed: {e}", log_type="ERROR")
 
     def on_count_vias(self, event):
@@ -371,7 +387,7 @@ class KiToolsDialog(wx.Dialog):
             log_message(f"Save settings failed: {e}", log_type="ERROR")
         board = pcbnew.GetBoard()
         if board is None:
-            self.status_label.SetLabel("No board open.")
+            self._set_status("No board open.")
             return
         try:
             count = fix_via.count_vias(
@@ -380,11 +396,10 @@ class KiToolsDialog(wx.Dialog):
                 self.via_spins['old_drill'].GetValue(),
             )
             self.via_count_label.SetLabel(f"vias: {count}")
-            self.status_label.SetLabel(f"Found {count} matching vias.")
+            self._set_status(f"Found {count} matching vias.")
         except Exception as e:
             self.via_count_label.SetLabel("vias: ?")
-            self.status_label.SetLabel(_short_error(
-                "Count vias failed: {}".format(e)))
+            self._set_status("Count vias failed: {}".format(e))
             log_message(f"Count vias failed: {e}", log_type="ERROR")
 
     def on_close(self, event):
