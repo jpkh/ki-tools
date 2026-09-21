@@ -1,5 +1,7 @@
 # KI-Tools
 
+![KI-Tools dialog](assets/ki-tools_UI.png)
+
 A KiCad PCB editor plugin with a collection of small board-editing utilities
 behind a simple UI of buttons and text boxes. All tool values are remembered
 between sessions.
