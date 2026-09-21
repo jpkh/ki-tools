@@ -80,5 +80,5 @@ def fix_vias(board, old_diameter, new_diameter, old_drill, new_drill):
             _set_via_drill(via, new_drill_nm)
             count += 1
 
-    board.Refresh()
+    pcbnew.Refresh()
     return count

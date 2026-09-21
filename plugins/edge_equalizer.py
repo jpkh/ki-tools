@@ -34,15 +34,15 @@ def _board_drawings(board):
 
 
 def equalize_edges(board, line_width):
-    """Set every line segment on Edge.Cuts to the given width.
+    """Set every line and arc on Edge.Cuts to the given width.
 
-    Only straight line segments are touched; other Edge.Cuts items
-    (arcs, circles, text) are left alone.
+    Other Edge.Cuts items (circles, text) are left alone.
 
-    line_width: mm float. Returns the number of modified lines.
+    line_width: mm float. Returns (lines_changed, arcs_changed).
     """
     width_nm = int(round(line_width * 1e6))
-    count = 0
+    lines = 0
+    arcs = 0
     for item in _board_drawings(board):
         try:
             if item.GetLayer() != pcbnew.Edge_Cuts:
@@ -51,12 +51,17 @@ def equalize_edges(board, line_width):
             continue
         try:
             shape_fn = getattr(item, 'GetShape', None)
-            if shape_fn is None or shape_fn() != pcbnew.S_SEGMENT:
+            if shape_fn is None:
                 continue
-            item.SetWidth(width_nm)
-            count += 1
+            shape = shape_fn()
+            if shape == pcbnew.S_SEGMENT:
+                item.SetWidth(width_nm)
+                lines += 1
+            elif shape == pcbnew.S_ARC:
+                item.SetWidth(width_nm)
+                arcs += 1
         except Exception:
             continue
 
-    board.Refresh()
-    return count
+    pcbnew.Refresh()
+    return lines, arcs

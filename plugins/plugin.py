@@ -372,10 +372,11 @@ class KiToolsDialog(wx.Dialog):
             self._set_status("No board open.")
             return
         try:
-            count = edge_equalizer.equalize_edges(
+            lines, arcs = edge_equalizer.equalize_edges(
                 board, self.edge_width_spin.GetValue())
-            log_message(f"Equalized edges: {count} line(s)")
-            self._set_status(f"Updated {count} edge line(s).")
+            log_message(f"Equalized edges: {lines} line(s), {arcs} arc(s)")
+            self._set_status(
+                f"Updated {lines} line(s) and {arcs} arc(s) on Edge.Cuts.")
         except Exception as e:
             self._set_status("Edge equalizer failed: {}".format(e))
             log_message(f"Edge equalizer failed: {e}", log_type="ERROR")
